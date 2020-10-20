@@ -1,0 +1,36 @@
+type: config
+useWhiteList: false
+disablePeerDiscovery: false
+bootstrapNode: false
+jdbc:
+  url: jdbc:h2:file:/#mNode#/node/qdata/#mNode#;AUTO_SERVER=TRUE
+  autoCreateTables: true
+  fetchSize: 0
+serverConfigs:
+  - app: Q2T
+    communicationType: REST
+    serverAddress: unix:/#mNode#/node/qdata/#mNode#.ipc
+    properties: {}
+  - app: P2P
+    communicationType: REST
+    sslConfig:
+      tls: OFF
+      generateKeyStoreIfNotExisted: false
+      serverTrustCertificates: []
+      serverTrustMode: TOFU
+      clientTrustCertificates: []
+      clientTrustMode: TOFU
+    bindingAddress: http://#CURRENT_IP#:22002
+    serverAddress: http://#CURRENT_IP#:22002
+    properties: {}
+peer:
+  - url: http://#MASTER_IP#:22002/
+keys:
+  keyData:
+    privateKeyPath: /#mNode#/node/keys/#mNode#.key
+    publicKeyPath: /#mNode#/node/keys/#mNode#.pub
+alwaysSendTo: []
+features:
+  enableRemoteKeyValidation: false
+encryptor:
+  type: NACL
