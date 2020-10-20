@@ -41,8 +41,8 @@ function readParameters() {
             shift # past argument
             shift # past value
             ;;
-            -c|--constellation)
-            cPort="$2"
+            -t|--tessera)
+            tPort="$2"
             shift # past argument
             shift # past value
             ;;
@@ -61,10 +61,6 @@ function readParameters() {
             shift # past argument
             shift # past value
             ;;
-            -t|--tessera)
-            tessera="true"
-            shift # past argument
-            ;;
             --aa|--autoaccept)
             autoaccept="true"
             shift # past argument
@@ -77,11 +73,11 @@ function readParameters() {
     done
     set -- "${POSITIONAL[@]}" # restore positional parameters
 
-    if [[ -z "$sNode" && -z "$pMainIp" && -z "$mgoPort" && -z "$pCurrentIp" && -z "$rPort" && -z "$wPort" && -z "$cPort" && -z "$raPort" && -z "$tgoPort" && -z "$wsPort" ]]; then
+    if [[ -z "$sNode" && -z "$pMainIp" && -z "$mgoPort" && -z "$pCurrentIp" && -z "$rPort" && -z "$wPort" && -z "$tPort" && -z "$raPort" && -z "$tgoPort" && -z "$wsPort" ]]; then
         return
     fi
 
-    if [[ -z "$sNode" || -z "$pMainIp" || -z "$mgoPort" || -z "$pCurrentIp" || -z "$rPort" || -z "$wPort" || -z "$cPort" || -z "$raPort" || -z "$tgoPort" || -z "$wsPort" ]]; then
+    if [[ -z "$sNode" || -z "$pMainIp" || -z "$mgoPort" || -z "$pCurrentIp" || -z "$rPort" || -z "$wPort" || -z "$tPort" || -z "$raPort" || -z "$tgoPort" || -z "$wsPort" ]]; then
         help
     fi
 
@@ -96,8 +92,8 @@ function readInputs(){
         getInputWithDefault 'Please enter IP Address of this node' "" pCurrentIp $RED
         getInputWithDefault 'Please enter RPC Port of this node' 22000 rPort $GREEN
         getInputWithDefault 'Please enter Network Listening Port of this node' $((rPort+1)) wPort $GREEN
-        getInputWithDefault 'Please enter Constellation Port of this node' $((wPort+1)) cPort $GREEN
-        getInputWithDefault 'Please enter Raft Port of this node' $((cPort+1)) raPort $PINK
+        getInputWithDefault 'Please enter Tessera Port of this node' $((wPort+1)) tPort $GREEN
+        getInputWithDefault 'Please enter Raft Port of this node' $((tPort+1)) raPort $PINK
         getInputWithDefault 'Please enter Node Manager Port of this node' $((raPort+1)) tgoPort $BLUE
         getInputWithDefault 'Please enter WS Port of this node' $((tgoPort+1)) wsPort $GREEN
     fi
@@ -107,12 +103,11 @@ function readInputs(){
 
 #function to generate keyPair for node
  function generateKeyPair(){
-    echo -ne "\n" | constellation-node --generatekeys=${sNode} 1>>/dev/null
 
-    echo -ne "\n" | constellation-node --generatekeys=${sNode}a 1>>/dev/null
+     tessera="java -jar /tessera/tessera-app.jar"
 
-    mv ${sNode}*.*  ${sNode}/node/keys/.
-    
+     $tessera -keygen -filename $PWD/${sNode}/node/keys/${sNode} < /dev/null 1>>/dev/null
+
  }
 
 #function to create node initialization script
@@ -172,15 +167,8 @@ function copyScripts(){
 
     cp lib/common.sh  ${sNode}/node
 
-    cp lib/slave/constellation_template.conf ${sNode}/node/${sNode}.conf
+    cp lib/slave/tessera-config.yaml ${sNode}/node/tessera-config.yaml
 
-    cp lib/master/tessera-migration.properties ${sNode}/node/qdata
-
-    cp lib/master/empty_h2.mv.db ${sNode}/node/qdata/${sNode}.mv.db
-
-    cp lib/slave/migrate_to_tessera.sh ${sNode}/node
-    PATTERN="s/#mNode#/${sNode}/g"
-    sed -i $PATTERN ${sNode}/node/migrate_to_tessera.sh
 }
 
 function createSetupConf() {
@@ -189,7 +177,7 @@ function createSetupConf() {
     echo 'WHISPER_PORT='${wPort} >> ${sNode}/setup.conf
     echo 'RAFT_PORT='${raPort} >> ${sNode}/setup.conf
     echo 'RPC_PORT='${rPort} >> ${sNode}/setup.conf
-    echo 'CONSTELLATION_PORT='${cPort} >> ${sNode}/setup.conf
+    echo 'TESSERA_PORT='${tPort} >> ${sNode}/setup.conf
     echo 'THIS_NODEMANAGER_PORT='${tgoPort} >> ${sNode}/setup.conf
     echo 'MAIN_NODEMANAGER_PORT='${mgoPort} >> ${sNode}/setup.conf
     echo 'WS_PORT='${wsPort} >> ${sNode}/setup.conf
@@ -197,10 +185,6 @@ function createSetupConf() {
     echo 'REGISTERED=' >> ${sNode}/setup.conf
     echo 'MODE=ACTIVE' >> ${sNode}/setup.conf
     echo 'STATE=I' >> ${sNode}/setup.conf
-    
-    if [ ! -z $tessera ]; then
-        echo 'TESSERA=true' >> ${sNode}/setup.conf        
-    fi
 
     if [ ! -z $autoaccept ]; then
         echo 'AUTO_ACCEPT_JOIN_REQUEST=YES' >> ${sNode}/setup.conf

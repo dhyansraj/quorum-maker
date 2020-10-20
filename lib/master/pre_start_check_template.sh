@@ -26,8 +26,8 @@ function readParameters() {
             shift # past argument
             shift # past value
             ;;
-            -c|--constellation)
-            cPort="$2"
+            -t|--tessera)
+            tPort="$2"
             shift # past argument
             shift # past value
             ;;
@@ -46,10 +46,6 @@ function readParameters() {
             shift # past argument
             shift # past value
             ;;
-            -t|--tessera)
-            tessera="true"
-            shift # past argument
-            ;;
             --aa|--autoaccept)
             autoaccept="true"
             shift # past argument
@@ -62,11 +58,11 @@ function readParameters() {
     done
     set -- "${POSITIONAL[@]}" # restore positional parameters
 
-    if [[ -z "$pCurrentIp" && -z "$rPort" && -z "$wPort" && -z "$cPort" && -z "$raPort" && -z "$tgoPort" && -z "$wsPort" ]]; then
+    if [[ -z "$pCurrentIp" && -z "$rPort" && -z "$wPort" && -z "$tPort" && -z "$raPort" && -z "$tgoPort" && -z "$wsPort" ]]; then
         return
     fi
 
-    if [[ -z "$pCurrentIp" || -z "$rPort" || -z "$wPort" || -z "$cPort" || -z "$raPort" || -z "$tgoPort" || -z "$wsPort" ]]; then
+    if [[ -z "$pCurrentIp" || -z "$rPort" || -z "$wPort" || -z "$tPort" || -z "$raPort" || -z "$tgoPort" || -z "$wsPort" ]]; then
         help
     fi
 
@@ -84,9 +80,9 @@ function readInputs(){
         
         getInputWithDefault 'Please enter Network Listening Port of this node' $((rPort+1)) wPort $GREEN
         
-        getInputWithDefault 'Please enter Constellation Port of this node' $((wPort+1)) cPort $GREEN
+        getInputWithDefault 'Please enter Tessera Port of this node' $((wPort+1)) tPort $GREEN
         
-        getInputWithDefault 'Please enter Raft Port of this node' $((cPort+1)) raPort $PINK
+        getInputWithDefault 'Please enter Raft Port of this node' $((tPort+1)) raPort $PINK
         
         getInputWithDefault 'Please enter Node Manager Port of this node' $((raPort+1)) tgoPort $BLUE
 
@@ -99,7 +95,7 @@ function readInputs(){
     echo 'CURRENT_IP='$pCurrentIp > ./setup.conf
     echo 'RPC_PORT='$rPort >> ./setup.conf
     echo 'WHISPER_PORT='$wPort >> ./setup.conf
-    echo 'CONSTELLATION_PORT='$cPort >> ./setup.conf
+    echo 'TESSERA_PORT='$tPort >> ./setup.conf
     echo 'RAFT_PORT='$raPort >> ./setup.conf
     echo 'THIS_NODEMANAGER_PORT='$tgoPort >>  ./setup.conf
     echo 'WS_PORT='$wsPort >>  ./setup.conf
@@ -136,20 +132,20 @@ function staticNode(){
     sed -i "$PATTERN3" node/qdata/static-nodes.json
 }
 
-function generateConstellationConf() {
+function updateTesseraYaml() {
     PATTERN1="s/#CURRENT_IP#/${pCurrentIp}/g"
-    PATTERN2="s/#C_PORT#/$cPort/g"
+    PATTERN2="s/#T_PORT#/$tPort/g"
     PATTERN3="s/#mNode#/$nodeName/g"
 
-    sed -i "$PATTERN1" node/$nodeName.conf
-    sed -i "$PATTERN2" node/$nodeName.conf
-    sed -i "$PATTERN3" node/$nodeName.conf
+    sed -i "$PATTERN1" node/tessera-config.yaml
+    sed -i "$PATTERN2" node/tessera-config.yaml
+    sed -i "$PATTERN3" node/tessera-config.yaml
 }
 
-function migrateToTessera() {
+function convertToTesseraJson() {
     
     pushd node
-    . ./migrate_to_tessera.sh "http://${pCurrentIp}:$cPort/"  >> /dev/null 2>&1
+    yq r -j --prettyPrint tessera-config.yaml > tessera-config.json
     popd
 }
 
@@ -163,12 +159,8 @@ function main(){
 
         readInputs
         staticNode
-        generateConstellationConf
-        
-        if [ ! -z $tessera ]; then
-            migrateToTessera
-            PRIVACY="TESSERA"
-        fi
+        updateTesseraYaml
+        convertToTesseraJson
 
         if [ ! -z $autoaccept ]; then
             echo 'AUTO_ACCEPT_JOIN_REQUEST=YES' >> ./setup.conf

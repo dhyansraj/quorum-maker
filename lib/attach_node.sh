@@ -36,8 +36,8 @@ function readParameters() {
             shift # past argument
             shift # past value
             ;;
-            -c|--constellation)
-            cPort="$2"
+            -t|--tessera)
+            tPort="$2"
             shift # past argument
             shift # past value
             ;;
@@ -83,11 +83,11 @@ function readInputs(){
     if [ -z "$NON_INTERACTIVE" ]; then
                 
         getInputWithDefault 'Please enter the IP Address of Geth' "" pCurrentIp $RED
-        getInputWithDefault 'Please enter the Public Key of Constellation' "" publickey $BLUE
+        getInputWithDefault 'Please enter the Public Key of Tessera' "" publickey $BLUE
         getInputWithDefault 'Please enter the RPC Port of Geth' 22000 rPort $GREEN
         getInputWithDefault 'Please enter the Network Listening Port of Geth' $((rPort+1)) wPort $GREEN
-        getInputWithDefault 'Please enter the Constellation Port' $((wPort+1)) cPort $GREEN
-        getInputWithDefault 'Please enter the Raft Port' $((cPort+1)) raPort $PINK
+        getInputWithDefault 'Please enter the Tessera Port' $((wPort+1)) tPort $GREEN
+        getInputWithDefault 'Please enter the Raft Port' $((tPort+1)) raPort $PINK
         getInputWithDefault 'Please enter the Node Manager Port of this node' $((raPort+1)) tgoPort $BLUE
         getInputWithDefault 'Please enter the Attachment Mode of this node (1 for active and 2 for passive)' 1 mode $CYAN
         
@@ -117,7 +117,7 @@ function createSetupScript() {
     echo 'WHISPER_PORT='${wPort} >> ${sNode}/setup.conf
     echo 'RAFT_PORT='${raPort} >> ${sNode}/setup.conf
     echo 'RPC_PORT='${rPort} >> ${sNode}/setup.conf
-    echo 'CONSTELLATION_PORT='${cPort} >> ${sNode}/setup.conf
+    echo 'TESSERA_PORT='${tPort} >> ${sNode}/setup.conf
     echo 'THIS_NODEMANAGER_PORT='${tgoPort} >> ${sNode}/setup.conf
     echo 'CURRENT_IP='${pCurrentIp} >> ${sNode}/setup.conf
     echo 'PUBKEY='${publickey} >> ${sNode}/setup.conf

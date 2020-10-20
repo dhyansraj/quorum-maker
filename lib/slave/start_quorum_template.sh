@@ -21,28 +21,28 @@ function upcheck() {
     
         k=$((k - 1))
         if [ ${k} -le 0 ]; then
-            echo "Constellation/Tessera is taking a long time to start.  Look at the Constellation/Tessera logs for help diagnosing the problem." >> qdata/gethLogs/${NODE_NAME}.log
+            echo "Tessera is taking a long time to start.  Look at the Tessera logs for help diagnosing the problem." >> qdata/gethLogs/${NODE_NAME}.log
         fi
        
         sleep 5
     done
 }
 
-rm -f /home/node/qdata/${NODENAME}.ipc
+rm -f qdata/${NODENAME}.ipc
 
 ENABLED_API="admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft"
 GLOBAL_ARGS="--raft --nodiscover --gcmode=archive --networkid $NETID --raftjoinexisting $RAFTID  --rpc --rpcaddr 0.0.0.0 --rpcapi $ENABLED_API --emitcheckpoints --allow-insecure-unlock"
 
 tessera="java -jar /tessera/tessera-app.jar"
 
-echo "[*] Starting Constellation node" > qdata/constellationLogs/constellation_${NODENAME}.log
+echo "[*] Starting Tessera node" > qdata/tesseraLogs/tessera_${NODENAME}.log
 
-constellation-node ${NODENAME}.conf >> qdata/constellationLogs/constellation_${NODENAME}.log 2>&1 &
+$tessera -configfile tessera-config.json >> qdata/tesseraLogs/tessera_${NODENAME}.log 2>&1 &
 
 upcheck
 
-echo "[*] Starting ${NODENAME} node" >> qdata/gethLogs/${NODENAME}.log
-echo "[*] geth --verbosity 6 --datadir qdata --raft --nodiscover --networkid $NETID --raftjoinexisting $RAFTID --rpc --rpcaddr 0.0.0.0 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft --emitcheckpoints --raftport $RA_PORT --rpcport $R_PORT --port $W_PORT --nat extip:$CURRENT_NODE_IP">> qdata/gethLogs/${NODENAME}.log
+echo "[*] Starting ${NODENAME} node" > qdata/gethLogs/${NODENAME}.log
+echo "[*] geth --verbosity 6 --datadir qdata --raft --nodiscover --networkid $NETID --raftjoinexisting $RAFTID --rpc --rpcaddr 0.0.0.0 --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3,quorum,raft --emitcheckpoints --raftport $RA_PORT --rpcport $R_PORT --port $W_PORT --nat extip:$CURRENT_NODE_IP" >> qdata/gethLogs/${NODENAME}.log
 
 PRIVATE_CONFIG=qdata/$NODENAME.ipc geth --verbosity 6 --datadir qdata $GLOBAL_ARGS --rpccorsdomain "*" --raftport $RA_PORT --rpcport $R_PORT --port $W_PORT --ws --wsaddr 0.0.0.0 --wsport $WS_PORT --wsorigins '*' --wsapi $ENABLED_API --nat extip:$CURRENT_NODE_IP 2>>qdata/gethLogs/${NODENAME}.log &
 

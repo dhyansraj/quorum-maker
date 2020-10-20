@@ -5,11 +5,10 @@ source lib/common.sh
 
 #function to generate keyPair for node
 function generateKeyPair(){
-    echo -ne "\n" | constellation-node --generatekeys=${mNode} 1>>/dev/null
 
-    echo -ne "\n" | constellation-node --generatekeys=${mNode}a 1>>/dev/null
+    tessera="java -jar /tessera/tessera-app.jar"
 
-    mv ${mNode}*.*  ${mNode}/node/keys/.
+    $tessera -keygen -filename $PWD/${mNode}/node/keys/${mNode} < /dev/null 1>>/dev/null
 
 }
 
@@ -44,16 +43,7 @@ function copyScripts(){
     cp lib/master/nodemanager_template.sh ${mNode}/node/nodemanager.sh
     chmod +x ${mNode}/node/nodemanager.sh
 
-    cp lib/master/constellation_template.conf ${mNode}/node/${mNode}.conf
-
-    cp lib/master/tessera-migration.properties ${mNode}/node/qdata
-
-    cp lib/master/empty_h2.mv.db ${mNode}/node/qdata/${mNode}.mv.db
-
-    cp lib/master/migrate_to_tessera.sh ${mNode}/node
-    PATTERN="s/#mNode#/${mNode}/g"
-    sed -i $PATTERN ${mNode}/node/migrate_to_tessera.sh
-
+    cp lib/master/tessera-config.yaml ${mNode}/node/tessera-config.yaml
 }
 
 #function to generate enode

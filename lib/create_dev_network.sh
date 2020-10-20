@@ -4,16 +4,18 @@ source qm.variables
 source lib/common.sh
 
 #create node configuration file
-function generateNodeConf(){
+function updateTesseraYaml(){
     PATTERN="s/#mNode#/node$1/g"
-    sed $PATTERN lib/dev/template.conf > $projectName/node$1/node/node$1.conf
+    sed -i $PATTERN $projectName/node$1/node/tessera-config.yaml
 
     PATTERN="s/#CURRENT_IP#/${DOCKER_NETWORK_IP}$(($1+1))/g"
-    sed -i $PATTERN $projectName/node$1/node/node$1.conf
+    sed -i $PATTERN $projectName/node$1/node/tessera-config.yaml
 
-    if [ $i -gt 1 ]; then
-        echo othernodes = ["\"http://${DOCKER_NETWORK_IP}2:22002/\""] >> $projectName/node$1/node/node$1.conf
-    fi
+    PATTERN="s/#MASTER_IP#/${DOCKER_NETWORK_IP}2/g"
+    sed -i $PATTERN $projectName/node$1/node/tessera-config.yaml
+
+    yq r -j --prettyPrint $projectName/node$1/node/tessera-config.yaml > $projectName/node$1/node/tessera-config.json
+
 }
 
 function generateSetupConf(){
@@ -32,10 +34,10 @@ function generateSetupConf(){
 
 #function to generate keyPair for node
 function generateKeyPair(){
-    echo -ne "\n" | constellation-node --generatekeys=node$1 1>>/dev/null
-    echo -ne "\n" | constellation-node --generatekeys=node$1a 1>>/dev/null
 
-    mv node$1*.*  $projectName/node$1/node/keys/.
+    tessera="java -jar /tessera/tessera-app.jar"
+
+    $tessera -keygen -filename $PWD/$projectName/node$1/node/keys/node$1 < /dev/null 1>>/dev/null
 
 }
 
@@ -56,15 +58,8 @@ function copyStartTemplate(){
 
     cp lib/common.sh $projectName/node$1/node/common.sh
 
-    cp lib/dev/migrate_to_tessera.sh $projectName/node$1
+    cp lib/dev/tessera-config.yaml $projectName/node$1/node/tessera-config.yaml
 
-    cp lib/dev/tessera-migration.properties $projectName/node$1/node
-
-    cp lib/dev/empty_h2.mv.db $projectName/node$1/node/qdata/node$1.mv.db
-
-    PATTERN="s/#mNode#/node$1/g"
-    sed -i $PATTERN $projectName/node$1/migrate_to_tessera.sh
-    
 }
 
 #function to generate enode
@@ -184,13 +179,13 @@ function createNodeDirs(){
     i=1
     while : ; do
         mkdir -p $projectName/node$i/node/keys
-        mkdir -p $projectName/node$i/node/qdata/{keystore,geth,gethLogs,constellationLogs}
+        mkdir -p $projectName/node$i/node/qdata/{keystore,geth,gethLogs,tesseraLogs}
         
         generateKeyPair $i
         copyStartTemplate $i
         generateEnode $i
         createAccount $i    
-        generateNodeConf $i
+        updateTesseraYaml $i
         generateSetupConf $i
         addNodeToDC $i
 
@@ -236,22 +231,6 @@ function initNodes(){
         cp $projectName/genesis.json $projectName/node$i/node
         pushd $projectName/node$i/node
         geth --datadir qdata init genesis.json 2>> /dev/null
-        popd
-        
-        if [ $i -eq $nodeCount ]; then
-            break;
-        fi
-        let "i++"
-    done
-}
-
-function migrateToTessera(){
-    
-    i=1
-    while : ; do        
-        
-        pushd $projectName/node$i
-        . ./migrate_to_tessera.sh "http://"$DOCKER_NETWORK_IP"3:22002/" >> /dev/null 2>&1
         popd
         
         if [ $i -eq $nodeCount ]; then
@@ -346,12 +325,8 @@ function main(){
 
     initNodes
 
-    PRIVACY="CONSTELLATION"
-    if [ ! -z $tessera ]; then
-        migrateToTessera
-        PRIVACY="TESSERA"
-    fi
-    
+    PRIVACY="TESSERA"
+
     echo -e $GREEN'Project '$projectName' created successfully. Please execute docker-compose up from '$projectName' directory'$COLOR_END
 
     echo ""

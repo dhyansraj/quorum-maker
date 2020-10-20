@@ -1,2 +1,2 @@
-dockerImage=syneblock/quorum-maker:2.6.0_2.6.5
+dockerImage=syneblock/quorum-maker:2.6.0_3.0.0
 DOCKER_NETWORK_IP=10.50.0.

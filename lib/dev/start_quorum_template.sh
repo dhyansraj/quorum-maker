@@ -21,7 +21,7 @@ function upcheck() {
     
         k=$((k - 1))
         if [ ${k} -le 0 ]; then
-            echo "Constellation/Tessera is taking a long time to start.  Look at the Constellation/Tessera logs for help diagnosing the problem." >> qdata/gethLogs/#mNode#.log
+            echo "Tessera is taking a long time to start.  Look at the Tessera logs for help diagnosing the problem." >> qdata/gethLogs/#mNode#.log
         fi
        
         sleep 5
@@ -46,15 +46,15 @@ rm -f qdata/*lock.db
 
 rm -f /${NODE_NAME}/node/qdata/${NODE_NAME}.ipc
 
-echo "[*] Starting Constellation node" > qdata/constellationLogs/constellation_#mNode#.log
+echo "[*] Starting Tessera node" > qdata/tesseraLogs/tessera_#mNode#.log
 
-constellation-node #mNode#.conf >> qdata/constellationLogs/constellation_#mNode#.log 2>&1 &
+$tessera -configfile tessera-config.json >> qdata/tesseraLogs/tessera_${NODENAME}.log 2>&1 &
 
 upcheck
 
-echo "[*] Starting #mNode# node" >> qdata/gethLogs/#mNode#.log
+echo "[*] Starting #mNode# node" > qdata/gethLogs/#mNode#.log
 
-echo "[*] Waiting for Constellation/Tessera to start..." >> qdata/gethLogs/#mNode#.log
+echo "[*] Waiting for Tessera to start..." >> qdata/gethLogs/#mNode#.log
 
 upcheck
 

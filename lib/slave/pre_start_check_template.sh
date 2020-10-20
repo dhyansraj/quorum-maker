@@ -71,27 +71,34 @@ function requestGenesis(){
     	replyMap[$key]="$value"
 	done < <(jq -r "to_entries|map(\"\(.key)=\(.value|tostring)\")|.[]" input1.json)
 
-    MASTER_CONSTELLATION_PORT=${replyMap[contstellation-port]}
+    MASTER_TESSERA_PORT=${replyMap[tessera-port]}
    
-	echo 'MASTER_CONSTELLATION_PORT='$MASTER_CONSTELLATION_PORT >>  setup.conf
+	echo 'MASTER_TESSERA_PORT='$MASTER_TESSERA_PORT >>  setup.conf
 	echo 'NETWORK_ID='${replyMap[netID]} >>  setup.conf
 	echo ${replyMap[genesis]}  > node/genesis.json
         rm -f input1.json
     fi
 }
 
-function generateConstellationConf() {
+function updateTesseraYaml() {
     PATTERN1="s/#CURRENT_IP#/${CURRENT_IP}/g"
-    PATTERN2="s/#C_PORT#/$CONSTELLATION_PORT/g"
-    PATTERN3="s/#mNode#/$NODENAME/g"
+    PATTERN2="s/#T_PORT#/$TESSERA_PORT/g"
+    PATTERN3="s/#sNode#/$NODENAME/g"
     PATTERN4="s/#MASTER_IP#/$MASTER_IP/g"
-    PATTERN5="s/#MASTER_CONSTELLATION_PORT#/$MASTER_CONSTELLATION_PORT/g"
+    PATTERN5="s/#MASTER_T_PORT#/$MASTER_TESSERA_PORT/g"
 
-    sed -i "$PATTERN1" node/$NODENAME.conf
-    sed -i "$PATTERN2" node/$NODENAME.conf
-    sed -i "$PATTERN3" node/$NODENAME.conf
-    sed -i "$PATTERN4" node/$NODENAME.conf
-    sed -i "$PATTERN5" node/$NODENAME.conf
+    sed -i "$PATTERN1" node/tessera-config.yaml
+    sed -i "$PATTERN2" node/tessera-config.yaml
+    sed -i "$PATTERN3" node/tessera-config.yaml
+    sed -i "$PATTERN4" node/tessera-config.yaml
+    sed -i "$PATTERN5" node/tessera-config.yaml
+}
+
+function convertToTesseraJson() {
+
+    pushd node
+    yq r -j --prettyPrint tessera-config.yaml > tessera-config.json
+    popd
 }
 
 # execute init script
@@ -102,12 +109,6 @@ function executeInit(){
     ./init.sh
 }
 
-function migrateToTessera() {
-    
-    pushd node
-    . ./migrate_to_tessera.sh >> /dev/null 2>&1
-    popd
-}
 
 function main(){    
 
@@ -118,11 +119,9 @@ function main(){
         requestGenesis
         executeInit
         updateNmcAddress
-        generateConstellationConf
-        
-        if [ ! -z $TESSERA ]; then
-            migrateToTessera            
-        fi
+        updateTesseraYaml
+        convertToTesseraJson
+
 
         publickey=$(cat node/keys/$NODENAME.pub)
         echo 'PUBKEY='$publickey >> setup.conf
